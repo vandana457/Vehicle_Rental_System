@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Rental System - Live Demo</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #ca8a04;
+            --dark: #1e293b;
+            --light: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            color: var(--dark);
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--dark);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #e2e8f0;
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 5px;
+            margin-top: 5px;
+        }
+
+        button:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary); }
+        .btn-success { background-color: var(--success); }
+        .btn-danger { background-color: var(--danger); }
+        .btn-warning { background-color: var(--warning); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: white;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #e2e8f0;
+            color: var(--dark);
+        }
+
+        .badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .bg-available { background: #bbf7d0; color: #16a34a; }
+        .bg-rented { background: #fef08a; color: #a16207; }
+        .bg-maintenance { background: #fecdd3; color: #9f1239; }
+
+        .console {
+            background: #0f172a;
+            color: #38bdf8;
+            font-family: monospace;
+            padding: 15px;
+            border-radius: 6px;
+            max-height: 180px;
+            overflow-y: auto;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Vehicle Rental System</h1>
+        <p>Frontend CRUD, Stored Procedures & Triggers Simulation</p>
+    </header>
+
+    <div class="container">
+        <div>
+            <div class="card">
+                <h2 id="form-title">Manage Vehicle (Insert/Update)</h2>
+                <div class="form-group">
+                    <label>Vehicle Model</label>
+                    <input type="text" id="model" placeholder="e.g., Tesla Model 3">
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="type">
+                        <option value="Sedan">Sedan</option>
+                        <option value="SUV">SUV</option>
+                        <option value="Truck">Truck</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Rental Price / Day ($)</label>
+                    <input type="number" id="price" placeholder="e.g., 80">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="status">
+                        <option value="Available">Available</option>
+                        <option value="Rented">Rented</option>
+                        <option value="Maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="handleSave()">Save Vehicle</button>
+                <button class="btn-danger" id="cancel-btn" style="display:none;" onclick="resetForm()">Cancel</button>
+            </div>
+
+            <div class="card">
+                <h2>Execute Stored Procedure</h2>
+                <p style="font-size:0.8rem; color:#64748b; margin-bottom:10px;">
+                    Runs <code>sp_CalculateTotalRental</code>: Adds a 10% system tax onto the selected transaction.
+                </p>
+                <div class="form-group">
+                    <label>Select Rental ID</label>
+                    <select id="sp-rental-select"></select>
+                </div>
+                <button class="btn-warning" onclick="executeStoredProcedure()">Execute Procedure</button>
+            </div>
+
+            <div class="card">
+                <h2>Trigger Demonstration Scenario</h2>
+                <p style="font-size:0.8rem; color:#64748b; margin-bottom:10px;">
+                    Runs <code>trg_Vehicle_Maintenance</code>: Automatically inserts a row into the Maintenance log table when a vehicle status changes.
+                </p>
+                <div class="form-group">
+                    <label>Select Available Vehicle</label>
+                    <select id="trigger-vehicle-select"></select>
+                </div>
+                <button class="btn-danger" onclick="triggerMaintenanceScenario()">Send to Maintenance</button>
+            </div>
+
+            <div class="card">
+                <h2>SQL Terminal Output Log</h2>
+                <div class="console" id="db-log">System Status: Connected to memory database mock.</div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <h2>Vehicle Table Records</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Model</th>
+                            <th>Type</th>
+                            <th>Price/Day</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vehicle-table-body"></tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h2>Rental & Payment Table Records</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rental ID</th>
+                            <th>Vehicle ID</th>
+                            <th>Dates</th>
+                            <th>Base Amount</th>
+                            <th>Payment Status (Via SP)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rental-table-body"></tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h2>Maintenance Logs (Trigger Target)</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Log ID</th>
+                            <th>Vehicle ID</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintenance-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Memory-only Database Arrays (No LocalStorage blocks possible here)
+        let editTargetId = null;
+
+        let vehicles = [
+            { vehicle_id: "V-101", model: "Tesla Model 3", type: "Sedan", rental_price_per_day: 80, status: "Available" },
+            { vehicle_id: "V-102", model: "Ford Explorer", type: "SUV", rental_price_per_day: 110, status: "Rented" },
+            { vehicle_id: "V-103", model: "Chevrolet Silverado", type: "Truck", rental_price_per_day: 130, status: "Available" }
+        ];
+
+        let rentals = [
+            { rental_id: "R-901", vehicle_id: "V-102", start_date: "2026-06-01", end_date: "2026-06-05", total_amount: 440 }
+        ];
+
+        let payments = [
+            { payment_id: "P-301", rental_id: "R-901", amount: "Pending Calculation", payment_date: "Uncalculated" }
+        ];
+
+        let maintenance = [
+            { maintenance_id: "M-501", vehicle_id: "V-102", description: "Routine factory check.", status: "Completed" }
+        ];
+
+        function logEvent(msg) {
+            const logBox = document.getElementById('db-log');
+            logBox.innerHTML += `<br>&gt; ${msg}`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function renderAll() {
+            // 1. Render Vehicle Table
+            const vTbody = document.getElementById('vehicle-table-body');
+            vTbody.innerHTML = '';
+            vehicles.forEach(v => {
+                let badgeColor = v.status === 'Available' ? 'bg-available' : (v.status === 'Rented' ? 'bg-rented' : 'bg-maintenance');
+                vTbody.innerHTML += `<tr>
+                    <td>${v.vehicle_id}</td>
+                    <td><b>${v.model}</b></td>
+                    <td>${v.type}</td>
+                    <td>$${v.rental_price_per_day}</td>
+                    <td><span class="badge ${badgeColor}">${v.status}</span></td>
+                    <td>
+                        <button class="btn-warning" style="padding: 2px 6px; font-size:0.8rem;" onclick="startEdit('${v.vehicle_id}')">Edit</button>
+                        <button class="btn-danger" style="padding: 2px 6px; font-size:0.8rem;" onclick="handleDelete('${v.vehicle_id}')">Delete</button>
+                    </td>
+                </tr>`;
+            });
+
+            // 2. Render Rental & Payment Table
+            const rTbody = document.getElementById('rental-table-body');
+            rTbody.innerHTML = '';
+            rentals.forEach(r => {
+                let p = payments.find(pay => pay.rental_id === r.rental_id) || { amount: 'Pending', payment_date: 'N/A' };
+                rTbody.innerHTML += `<tr>
+                    <td>${r.rental_id}</td>
+                    <td>${r.vehicle_id}</td>
+                    <td><small>${r.start_date} to ${r.end_date}</small></td>
+                    <td>$${r.total_amount}</td>
+                    <td><b style="color:var(--success)">$${p.amount}</b><br><small>(${p.payment_date})</small></td>
+                </tr>`;
+            });
+
+            // 3. Render Maintenance Table
+            const mTbody = document.getElementById('maintenance-table-body');
+            mTbody.innerHTML = '';
+            maintenance.forEach(m => {
+                mTbody.innerHTML += `<tr>
+                    <td>${m.maintenance_id}</td>
+                    <td>${m.vehicle_id}</td>
+                    <td>${m.description}</td>
+                    <td><span class="badge bg-maintenance">${m.status}</span></td>
+                </tr>`;
+            });
+
+            // 4. Update Dropdowns
+            document.getElementById('sp-rental-select').innerHTML = rentals.map(r => `<option value="${r.rental_id}">${r.rental_id} ($${r.total_amount})</option>`).join('');
+            
+            let availVehicles = vehicles.filter(v => v.status === "Available");
+            let trigSelect = document.getElementById('trigger-vehicle-select');
+            if(availVehicles.length > 0) {
+                trigSelect.innerHTML = availVehicles.map(v => `<option value="${v.vehicle_id}">${v.vehicle_id} - ${v.model}</option>`).join('');
+            } else {
+                trigSelect.innerHTML = `<option value="">No available cars</option>`;
+            }
+        }
+
+        // INSERT & UPDATE
+        function handleSave() {
+            let model = document.getElementById('model').value.trim();
+            let type = document.getElementById('type').value;
+            let price = document.getElementById('price').value;
+            let status = document.getElementById('status').value;
+
+            if(!model || !price) {
+                alert("Please fill in both Vehicle Model and Price!");
+                return;
+            }
+
+            if(editTargetId) {
+                // UPDATE Mode
+                let idx = vehicles.findIndex(v => v.vehicle_id === editTargetId);
+                if(idx !== -1) {
+                    vehicles[idx] = { vehicle_id: editTargetId, model, type, rental_price_per_day: parseInt(price), status };
+                    logEvent(`SQL: UPDATE Vehicle SET model='${model}', status='${status}' WHERE id='${editTargetId}'`);
+                }
+            } else {
+                // INSERT Mode
+                let newId = "V-" + Math.floor(100 + Math.random() * 900);
+                vehicles.push({ vehicle_id: newId, model, type, rental_price_per_day: parseInt(price), status });
+                logEvent(`SQL: INSERT INTO Vehicle VALUES ('${newId}', '${model}', '${type}', ${price}, '${status}')`);
+            }
+            resetForm();
+            renderAll();
+        }
+
+        function startEdit(id) {
+            let v = vehicles.find(veh => veh.vehicle_id === id);
+            if(!v) return;
+
+            editTargetId = v.vehicle_id;
+            document.getElementById('model').value = v.model;
+            document.getElementById('type').value = v.type;
+            document.getElementById('price').value = v.rental_price_per_day;
+            document.getElementById('status').value = v.status;
+
+            document.getElementById('form-title').innerText = `Update Vehicle ${id}`;
+            document.getElementById('cancel-btn').style.display = "inline-block";
+        }
+
+        function resetForm() {
+            editTargetId = null;
+            document.getElementById('model').value = "";
+            document.getElementById('price').value = "";
+            document.getElementById('type').value = "Sedan";
+            document.getElementById('status').value = "Available";
+            document.getElementById('form-title').innerText = "Manage Vehicle (Insert/Update)";
+            document.getElementById('cancel-btn').style.display = "none";
+        }
+
+        // DELETE
+        function handleDelete(id) {
+            vehicles = vehicles.filter(v => v.vehicle_id !== id);
+            logEvent(`SQL: DELETE FROM Vehicle WHERE vehicle_id = '${id}'`);
+            renderAll();
+        }
+
+        // STORED PROCEDURE
+        function executeStoredProcedure() {
+            let rentId = document.getElementById('sp-rental-select').value;
+            if(!rentId) return;
+
+            let rentalObj = rentals.find(r => r.rental_id === rentId);
+            let finalWithTax = Math.round(rentalObj.total_amount * 1.15); // adding a mock 15% luxury state tax calculation
+
+            let pIdx = payments.findIndex(p => p.rental_id === rentId);
+            if(pIdx !== -1) {
+                payments[pIdx].amount = finalWithTax;
+                payments[pIdx].payment_date = "Calculated & Settled";
+            } else {
+                payments.push({ payment_id: "P-" + Math.floor(300+Math.random()*200), rental_id: rentId, amount: finalWithTax, payment_date: "Calculated & Settled" });
+            }
+
+            logEvent(`DB CALL: sp_CalculateTotalRental('${rentId}') -> Added 15% tax. Final: $${finalWithTax}`);
+            renderAll();
+        }
+
+        // AUTOMATIC SYSTEM TRIGGER
+        function triggerMaintenanceScenario() {
+            let vId = document.getElementById('trigger-vehicle-select').value;
+            if(!vId) return;
+
+            let idx = vehicles.findIndex(v => v.vehicle_id === vId);
+            if(idx === -1) return;
+
+            // Manual operation
+            vehicles[idx].status = "Maintenance";
+            logEvent(`SQL: UPDATE Vehicle SET status='Maintenance' WHERE vehicle_id='${vId}'`);
+
+            // Automatic side-effect (Trigger execution)
+            let newLogId = "M-" + Math.floor(600 + Math.random() * 300);
+            maintenance.push({
+                maintenance_id: newLogId,
+                vehicle_id: vId,
+                description: "System Trigger trg_AutoLog: Automatically flagged for investigation.",
+                status: "Awaiting Action"
+            });
+
+            logEvent(`⚡ TRIGGER trg_AutoLog fired automatically! Row generated in Maintenance Table.`);
+            renderAll();
+        }
+
+        // Run on page load
+        window.onload = renderAll;
+    </script>
+</body>
+</html>
